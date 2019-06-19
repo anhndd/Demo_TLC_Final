@@ -1,2 +1,4 @@
 EW reward: -19547.0 _sum_intersection_queue: 44714 || AWT: [14.860086407444333]
 EW reward: -25696.0 _sum_intersection_queue: 50508 || AWT: [16.785643070787636]
+EW reward: -9973.0 _sum_intersection_queue: 56905 || AWT: [18.911598537720174]
+EW reward: -25696.0 _sum_intersection_queue: 50508 || AWT: [16.785643070787636]

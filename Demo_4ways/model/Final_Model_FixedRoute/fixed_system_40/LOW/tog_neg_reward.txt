@@ -1,2 +1,3 @@
 LOW reward: -1215.0 _sum_intersection_queue: 22618 || AWT: [13.296884185773076]
 LOW reward: -1106.0 _sum_intersection_queue: 22815 || AWT: [13.412698412698413]
+LOW reward: -1106.0 _sum_intersection_queue: 22815 || AWT: [13.412698412698413]

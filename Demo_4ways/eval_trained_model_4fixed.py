@@ -750,7 +750,6 @@ def save_comparation():
 		avg_waiting_time_NS_40 = np.load(fixed_path_40+'NS/_avg_waiting_time_per_veh.npy')
 		avg_waiting_time_EW_40 = np.load(fixed_path_40+'EW/_avg_waiting_time_per_veh.npy')
 
-
 	    
 		# avg waiting_time (model)
 		avg_waiting_time_LOW_model = np.load(model_path+'LOW/_avg_waiting_time_per_veh_LOW.npy')

@@ -491,7 +491,10 @@ def main():
 	# ---------------------------- CONFIGURATION for EVALUATION FIXED DURATIONS -----------------------------------
 	simu_types = constants.simu_types								# L H NS EW  or RANDOM simulations.
 	durations_of_phases = [int(constants.duration),int(constants.duration)]
-	plot_path = constants.plot_path_fixed_sys
+	
+	plot_path = constants.path + 'fixed_system_'+str(constants.duration)+'/'
+	constants.plot_path_fixed_sys = plot_path
+
 	os.makedirs(os.path.dirname(plot_path), exist_ok=True)
 	yellow_duration = constants.yellow_duration
 	max_steps = constants.max_steps
