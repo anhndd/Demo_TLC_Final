@@ -1,0 +1,3 @@
+RANDOM_4 reward: -31220.0 _sum_intersection_queue: 62381 || AWT: [22.144479943201986]
+RANDOM_4 reward: -15100.0 _sum_intersection_queue: 39691 || AWT: [14.089811856585019]
+RANDOM_4 reward: -15100.0 _sum_intersection_queue: 39691 || AWT: [14.089811856585019]

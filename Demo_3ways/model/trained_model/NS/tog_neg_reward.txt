@@ -1,0 +1,1 @@
+NS reward: -14649.0 _sum_intersection_queue: 59459NS reward: -14649.0 _sum_intersection_queue: 59459

@@ -1,0 +1,1 @@
+RANDOM_3 reward: -5424.0 _sum_intersection_queue: 17561RANDOM_3 reward: -3657.0 _sum_intersection_queue: 17119RANDOM_3 reward: -3657.0 _sum_intersection_queue: 17119RANDOM_3 reward: -3657.0 _sum_intersection_queue: 17119RANDOM_3 reward: -5424.0 _sum_intersection_queue: 17561RANDOM_3 reward: -3657.0 _sum_intersection_queue: 17119

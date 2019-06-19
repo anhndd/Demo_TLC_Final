@@ -1,0 +1,2 @@
+HIGH reward: -19028.0 _sum_intersection_queue: 89742 || AWT: [21.260838663823737]
+HIGH reward: -18051.0 _sum_intersection_queue: 90648 || AWT: [21.47547974413646]

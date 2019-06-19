@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+        <routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+
+        <vType id="bus" vClass="bus" guiShape="bus" minGap="2" length="9.44" width="2.45" height="3.1"
+                latAlignment="left" lcPushy="1"/>
+        <flow id="myflow0" begin="0" end="3000" number="114" from="right_in" to="top_out" type="bus"/>
+        <flow id="myflow1" begin="0" end="3000" number="122" from="right_in" to="bottom_out" type="bus"/>
+        <flow id="myflow2" begin="0" end="3000" number="28" from="top_in" to="bottom_out" type="bus"/>
+        <flow id="myflow3" begin="0" end="3000" number="33" from="bottom_in" to="top_out" type="bus"/>
+        <flow id="myflow4" begin="0" end="3000" number="43" from="bottom_in" to="right_out" type="bus"/>
+        <flow id="myflow5" begin="0" end="3000" number="36" from="top_in" to="right_out" type="bus"/>
+
+        <vType id="motorcycle" vClass="motorcycle" minGap="0.5" length="2.034" width="0.74" height="1.152"
+                latAlignment="right" lcPushy="1"/>
+        <flow id="myflow6" begin="0" end="3000" number="114" from="right_in" to="top_out" type="motorcycle"/>
+        <flow id="myflow7" begin="0" end="3000" number="122" from="right_in" to="bottom_out" type="motorcycle"/>
+        <flow id="myflow8" begin="0" end="3000" number="28" from="top_in" to="bottom_out" type="motorcycle"/>
+        <flow id="myflow9" begin="0" end="3000" number="33" from="bottom_in" to="top_out" type="motorcycle"/>
+        <flow id="myflow10" begin="0" end="3000" number="43" from="bottom_in" to="right_out" type="motorcycle"/>
+        <flow id="myflow11" begin="0" end="3000" number="36" from="top_in" to="right_out" type="motorcycle"/>
+
+        <vType id="taxi" vClass="taxi" guiShape="passenger/van" minGap="2"
+                latAlignment="left" lcPushy="1"/>
+        <flow id="myflow12" begin="0" end="3000" number="114" from="right_in" to="top_out" type="taxi"/>
+        <flow id="myflow13" begin="0" end="3000" number="122" from="right_in" to="bottom_out" type="taxi"/>
+        <flow id="myflow14" begin="0" end="3000" number="28" from="top_in" to="bottom_out" type="taxi"/>
+        <flow id="myflow15" begin="0" end="3000" number="33" from="bottom_in" to="top_out" type="taxi"/>
+        <flow id="myflow16" begin="0" end="3000" number="43" from="bottom_in" to="right_out" type="taxi"/>
+        <flow id="myflow17" begin="0" end="3000" number="36" from="top_in" to="right_out" type="taxi"/>
+
+        </routes> 

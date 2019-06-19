@@ -1,0 +1,5 @@
+RANDOM_5 reward: -23498.0 _sum_intersection_queue: 50038 || AWT: [15.415280345040049]
+RANDOM_5 reward: 0 _sum_intersection_queue: 0 || AWT: [0.0]
+RANDOM_5 reward: 0 _sum_intersection_queue: 0 || AWT: [0.0]
+RANDOM_5 reward: 0 _sum_intersection_queue: 0 || AWT: [0.0]
+RANDOM_5 reward: -11340.0 _sum_intersection_queue: 57399 || AWT: [18.169990503323838]

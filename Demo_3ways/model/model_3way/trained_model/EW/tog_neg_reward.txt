@@ -1,0 +1,1 @@
+EW reward: -9838.0 _sum_intersection_queue: 26873EW reward: -9838.0 _sum_intersection_queue: 26873EW reward: -5906.0 _sum_intersection_queue: 18431EW reward: -9605.0 _sum_intersection_queue: 27135

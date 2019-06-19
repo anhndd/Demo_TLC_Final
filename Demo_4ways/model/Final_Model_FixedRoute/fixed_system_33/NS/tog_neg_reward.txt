@@ -1,0 +1,4 @@
+NS reward: -26762.0 _sum_intersection_queue: 54857 || AWT: [18.890151515151516]
+NS reward: -26092.0 _sum_intersection_queue: 49142 || AWT: [16.922176308539946]
+NS reward: -26092.0 _sum_intersection_queue: 49142 || AWT: [16.922176308539946]
+NS reward: -10610.0 _sum_intersection_queue: 52970 || AWT: [18.240358126721762]

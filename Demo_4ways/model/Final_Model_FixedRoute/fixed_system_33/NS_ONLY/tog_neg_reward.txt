@@ -1,0 +1,2 @@
+NS_ONLY reward: -12627.0 _sum_intersection_queue: 13246 || AWT: [11.038333333333334]
+NS_ONLY reward: -12627.0 _sum_intersection_queue: 13246 || AWT: [11.038333333333334]

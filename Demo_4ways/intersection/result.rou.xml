@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Fri Jan 11 22:21:21 2019 by SUMO duarouter Version 0.32.0
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+    <input>
+        <net-file value="net.net.xml"/>
+        <route-files value="trips.trips.xml"/>
+    </input>
+    <output>
+        <output-file value="result.rou.xml"/>
+        <alternatives-output value="result.rou.alt.xml"/>
+    </output>
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vType id="bus" vClass="bus" guiShape="bus" minGap="2" length="9.44" width="2.45" height="3.1"
+           latAlignment="left" lcPushy="1"/>
+    <flow id="myflow" begin="0" end="3000" number="30" from="gneE81" to="gneE63" type="bus"/>
+    <flow id="myflow1" begin="0" end="3000" number="30" from="gneE64" to="gneE80" type="bus"/>
+    <flow id="myflow2" begin="500" end="4000" number="30" from="gneE52" to="gneE20" type="bus"/>
+    <flow id="myflow3" begin="500" end="4000" number="30" from="gneE0" to="gneE51" type="bus"/>
+
+    <flow id="myflow4" begin="2000" end="4000" number="30" from="gneE81" to="gneE63" type="bus"/>
+    <flow id="myflow5" begin="2000" end="4000" number="30" from="gneE64" to="gneE80" type="bus"/>
+    <flow id="myflow6" begin="2000" end="4000" number="30" from="gneE52" to="gneE20" type="bus"/>
+    <flow id="myflow7" begin="2000" end="4000" number="30" from="gneE0" to="gneE51" type="bus"/>
+
+    <flow id="myflow8" begin="0" end="5000" number="40" from="gneE81" to="gneE51" type="bus"/>
+    <flow id="myflow9" begin="0" end="5000" number="40" from="gneE81" to="gneE20" type="bus"/>
+    <flow id="myflow10" begin="0" end="5000" number="40" from="gneE64" to="gneE20" type="bus"/>
+    <flow id="myflow11" begin="0" end="5000" number="40" from="gneE64" to="gneE51" type="bus"/>
+
+    <flow id="myflo" begin="0" end="5000" number="40" from="gneE0" to="gneE63" type="bus"/>
+    <flow id="myflo2" begin="0" end="5000" number="40" from="gneE0" to="gneE80" type="bus"/>
+    <flow id="myflo3" begin="0" end="5000" number="40" from="gneE52" to="gneE63" type="bus"/>
+    <flow id="myflo4" begin="0" end="5000" number="40" from="gneE52" to="gneE80" type="bus"/>
+
+    <vType id="motorcycle" vClass="motorcycle" minGap="0.5" length="2.034" width="0.74" height="1.152"
+           latAlignment="right" lcPushy="1"/>
+    <flow id="myflow12" begin="0" end="3000" number="50" from="gneE81" to="gneE63" type="motorcycle"/>
+    <flow id="myflow13" begin="0" end="3000" number="50" from="gneE64" to="gneE80" type="motorcycle"/>
+    <flow id="myflow14" begin="500" end="4000" number="50" from="gneE52" to="gneE20" type="motorcycle"/>
+    <flow id="myflow15" begin="500" end="4000" number="50" from="gneE0" to="gneE51" type="motorcycle"/>
+
+    <flow id="myflow16" begin="2000" end="4000" number="50" from="gneE81" to="gneE63" type="motorcycle"/>
+    <flow id="myflow17" begin="2000" end="4000" number="50" from="gneE64" to="gneE80" type="motorcycle"/>
+    <flow id="myflow18" begin="2000" end="4000" number="50" from="gneE52" to="gneE20" type="motorcycle"/>
+    <flow id="myflow19" begin="2000" end="4000" number="50" from="gneE0" to="gneE51" type="motorcycle"/>
+
+    <flow id="myflow20" begin="0" end="5000" number="60" from="gneE81" to="gneE51" type="motorcycle"/>
+    <flow id="myflow21" begin="0" end="5000" number="60" from="gneE81" to="gneE20" type="motorcycle"/>
+    <flow id="myflow22" begin="0" end="5000" number="60" from="gneE64" to="gneE20" type="motorcycle"/>
+    <flow id="myflow23" begin="0" end="5000" number="60" from="gneE64" to="gneE51" type="motorcycle"/>
+
+    <flow id="myflo5" begin="0" end="5000" number="250" from="gneE0" to="gneE63" type="motorcycle"/>
+    <flow id="myflo6" begin="0" end="5000" number="250" from="gneE0" to="gneE80" type="motorcycle"/>
+    <flow id="myflo7" begin="0" end="5000" number="250" from="gneE52" to="gneE63" type="motorcycle"/>
+    <flow id="myflo8" begin="0" end="5000" number="250" from="gneE52" to="gneE80" type="motorcycle"/>
+
+    <vType id="taxi" vClass="taxi" guiShape="passenger/van" minGap="2"
+           latAlignment="left" lcPushy="1"/>
+    <flow id="myflow81" begin="0" end="3000" number="20" from="gneE81" to="gneE63" type="taxi"/>
+    <flow id="myflow82" begin="0" end="3000" number="20" from="gneE64" to="gneE80" type="taxi"/>
+    <flow id="myflow83" begin="500" end="4000" number="20" from="gneE52" to="gneE20" type="taxi"/>
+    <flow id="myflow84" begin="500" end="4000" number="20" from="gneE0" to="gneE51" type="taxi"/>
+
+    <flow id="myflow85" begin="2000" end="4000" number="20" from="gneE81" to="gneE63" type="taxi"/>
+    <flow id="myflow86" begin="2000" end="4000" number="20" from="gneE64" to="gneE80" type="taxi"/>
+    <flow id="myflow87" begin="2000" end="4000" number="20" from="gneE52" to="gneE20" type="taxi"/>
+    <flow id="myflow88" begin="2000" end="4000" number="20" from="gneE0" to="gneE51" type="taxi"/>
+
+    <flow id="myflow24" begin="0" end="5000" number="30" from="gneE81" to="gneE51" type="taxi"/>
+    <flow id="myflow25" begin="0" end="5000" number="30" from="gneE81" to="gneE20" type="taxi"/>
+    <flow id="myflow26" begin="0" end="5000" number="30" from="gneE64" to="gneE20" type="taxi"/>
+    <flow id="myflow27" begin="0" end="5000" number="30" from="gneE64" to="gneE51" type="taxi"/>
+
+    <flow id="myflo28" begin="0" end="5000" number="30" from="gneE0" to="gneE63" type="taxi"/>
+    <flow id="myflo29" begin="0" end="5000" number="30" from="gneE0" to="gneE80" type="taxi"/>
+    <flow id="myflo30" begin="0" end="5000" number="30" from="gneE52" to="gneE63" type="taxi"/>
+    <flow id="myflo31" begin="0" end="5000" number="30" from="gneE52" to="gneE80" type="taxi"/>
+
+</routes>

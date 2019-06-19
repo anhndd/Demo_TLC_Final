@@ -1,0 +1,1 @@
+RANDOM_5 reward: -12922.0 _sum_intersection_queue: 125014RANDOM_5 reward: -11372.0 _sum_intersection_queue: 122496RANDOM_5 reward: -11372.0 _sum_intersection_queue: 122496RANDOM_5 reward: -11372.0 _sum_intersection_queue: 122496

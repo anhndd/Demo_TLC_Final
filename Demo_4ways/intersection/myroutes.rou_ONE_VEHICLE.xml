@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Sat Jun  1 13:32:09 2019 by Eclipse SUMO duarouter Version 1.2.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+
+    <input>
+        <net-file value="net.net.xml"/>
+        <route-files value="result.rou_ONE_VEHICLE.xml"/>
+    </input>
+
+    <output>
+        <output-file value="myroutes.rou_ONE_VEHICLE.xml"/>
+        <alternatives-output value="myroutes.rou_ONE_VEHICLE.alt.xml"/>
+    </output>
+
+    <processing>
+        <randomize-flows value="true"/>
+    </processing>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vType id="taxi" minGap="2.00" vClass="taxi" guiShape="passenger/van" latAlignment="left" lcPushy="1"/>
+    <vehicle id="myflow31.0" type="taxi" depart="1648.05">
+        <route edges="gneE0 gneE21 gneE88 gneE43 gneE45 gneE47 gneE49 gneE51"/>
+    </vehicle>
+    <vType id="motorcycle" length="2.03" minGap="0.50" vClass="motorcycle" width="0.74" height="1.15" latAlignment="right" lcPushy="1"/>
+    <vehicle id="myflow19.0" type="motorcycle" depart="2394.64">
+        <route edges="gneE0 gneE21 gneE88 gneE43 gneE45 gneE47 gneE49 gneE51"/>
+    </vehicle>
+    <vType id="bus" length="9.44" minGap="2.00" vClass="bus" guiShape="bus" width="2.45" height="3.10" latAlignment="left" lcPushy="1"/>
+    <vehicle id="myflow3.0" type="bus" depart="2488.08">
+        <route edges="gneE0 gneE21 gneE88 gneE43 gneE45 gneE47 gneE49 gneE51"/>
+    </vehicle>
+</routes>

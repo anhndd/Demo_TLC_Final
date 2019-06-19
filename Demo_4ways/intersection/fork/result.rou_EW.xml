@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Fri Jan 11 22:21:21 2019 by SUMO duarouter Version 0.32.0
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+    <input>
+        <net-file value="net.net.xml"/>
+        <route-files value="trips.trips.xml"/>
+    </input>
+    <output>
+        <output-file value="result.rou.xml"/>
+        <alternatives-output value="result.rou.alt.xml"/>
+    </output>
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vType id="bus" vClass="bus" guiShape="bus" minGap="2" length="9.44" width="2.45" height="3.1"
+           latAlignment="left" lcPushy="1"/>
+    <flow id="myflow0" begin="0" end="3000" number="90" from="right_in" to="top_out" type="bus"/>
+    <flow id="myflow1" begin="0" end="3000" number="90" from="right_in" to="bottom_out" type="bus"/>
+    <flow id="myflow2" begin="0" end="3000" number="30" from="top_in" to="bottom_out" type="bus"/>
+    <flow id="myflow3" begin="0" end="3000" number="30" from="bottom_in" to="top_out" type="bus"/>
+    <flow id="myflow4" begin="0" end="3000" number="30" from="bottom_in" to="right_out" type="bus"/>
+    <flow id="myflow5" begin="0" end="3000" number="30" from="top_in" to="right_out" type="bus"/>
+
+    <vType id="motorcycle" vClass="motorcycle" minGap="0.5" length="2.034" width="0.74" height="1.152"
+           latAlignment="right" lcPushy="1"/>
+    <flow id="myflow6" begin="0" end="3000" number="180" from="right_in" to="top_out" type="motorcycle"/>
+    <flow id="myflow7" begin="0" end="3000" number="180" from="right_in" to="bottom_out" type="motorcycle"/>
+    <flow id="myflow8" begin="0" end="3000" number="60" from="top_in" to="bottom_out" type="motorcycle"/>
+    <flow id="myflow9" begin="0" end="3000" number="60" from="bottom_in" to="top_out" type="motorcycle"/>
+    <flow id="myflow10" begin="0" end="3000" number="60" from="bottom_in" to="right_out" type="motorcycle"/>
+    <flow id="myflow11" begin="0" end="3000" number="60" from="top_in" to="right_out" type="motorcycle"/>
+
+    <vType id="taxi" vClass="taxi" guiShape="passenger/van" minGap="2"
+           latAlignment="left" lcPushy="1"/>
+    <flow id="myflow12" begin="0" end="3000" number="120" from="right_in" to="top_out" type="taxi"/>
+    <flow id="myflow13" begin="0" end="3000" number="120" from="right_in" to="bottom_out" type="taxi"/>
+    <flow id="myflow14" begin="0" end="3000" number="40" from="top_in" to="bottom_out" type="taxi"/>
+    <flow id="myflow15" begin="0" end="3000" number="40" from="bottom_in" to="top_out" type="taxi"/>
+    <flow id="myflow16" begin="0" end="3000" number="40" from="bottom_in" to="right_out" type="taxi"/>
+    <flow id="myflow17" begin="0" end="3000" number="40" from="top_in" to="right_out" type="taxi"/>
+
+</routes>

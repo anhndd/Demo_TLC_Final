@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Sat Jun  1 13:29:01 2019 by Eclipse SUMO duarouter Version 1.2.0
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+
+    <input>
+        <net-file value="net.net.xml"/>
+        <route-files value="result.rou_ONE_VEHICLE.xml"/>
+    </input>
+
+    <output>
+        <output-file value="myroutes.rou_ONE_VEHICLE.xml"/>
+        <alternatives-output value="myroutes.rou_ONE_VEHICLE.alt.xml"/>
+    </output>
+
+    <processing>
+        <randomize-flows value="true"/>
+    </processing>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+    <vType id="taxi" minGap="2.00" vClass="taxi" guiShape="passenger/van" latAlignment="left" lcPushy="1"/>
+    <vehicle id="myflow31.0" type="taxi" depart="1648.05">
+        <route edges="gneE0 gneE21 gneE88 gneE43 gneE45 gneE47 gneE49 gneE51"/>
+    </vehicle>
+</routes>

@@ -1,0 +1,1 @@
+ONE_VEHICLE reward: -4.0 _sum_intersection_queue: 4 || AWT: [4.0]

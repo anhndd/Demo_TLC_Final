@@ -1,0 +1,863 @@
+# coding=utf-8
+from __future__ import absolute_import
+from __future__ import print_function
+
+# import routes_generation_training
+
+import os
+import sys
+import random
+import numpy as np
+import math
+import time
+import pickle
+import constants
+import count_veh
+
+import timeit
+import matplotlib.pyplot as plt
+import datetime
+
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2' # to kill warning about tensorflow
+
+if 'SUMO_HOME' in os.environ:
+    tools = os.path.join(os.environ['SUMO_HOME'], 'tools')
+    sys.path.append(tools)
+else:
+    sys.exit("Please declare the environment variable 'SUMO_HOME'")
+
+import traci
+
+PHASE_EW_GREEN = 0 
+PHASE_EW_YELLOW = 1
+PHASE_NS_GREEN = 2 
+PHASE_NS_YELLOW = 3
+
+from keras.layers import Input, Conv2D, Flatten, Dense, LeakyReLU, Average, Add, Dot, Subtract, Multiply
+from keras.models import Model
+from keras.optimizers import Adam
+import genorator
+
+class DQNAgent:
+	# initialize agent
+	def __init__(self, num_actions, batch_size):
+		
+		# DA implement:
+		self.Beta = 0.01        			# Leaky ReLU
+		self.learning_rate = 0.0001 		# learning rate
+		
+		# # best model ========================================================================
+		self._num_actions = num_actions
+		self._batch_size = batch_size
+
+		# now setup the model
+		self.model = self._define_model()
+
+	# define architect of model
+	def _define_model(self):
+		input_1 = Input(shape=(60, 60, 2))
+		input_2 = Input(shape=(self._num_actions, self._num_actions))
+
+		x1 = Conv2D(32, (4, 4), strides=(2, 2),padding='Same', activation=LeakyReLU(alpha=self.Beta))(input_1)
+		x1 = Conv2D(64, (2, 2), strides=(2, 2),padding='Same', activation=LeakyReLU(alpha=self.Beta))(x1)
+		x1 = Conv2D(128, (2, 2), strides=(1, 1),padding='Same', activation=LeakyReLU(alpha=self.Beta))(x1)
+		x1 = Flatten()(x1)
+		x1 = Dense(128, activation=LeakyReLU(alpha=self.Beta))(x1)				# fully connected.
+		x1_value = Dense(64, activation=LeakyReLU(alpha=self.Beta))(x1)			# 64
+		value = Dense(1, activation=LeakyReLU(alpha=self.Beta))(x1_value)
+
+		x1_advantage = Dense(64, activation=LeakyReLU(alpha=self.Beta))(x1)
+		advantage = Dense(self._num_actions, activation=LeakyReLU(alpha=self.Beta))(x1_advantage)
+
+		A = Dot(axes=1)([input_2, advantage])
+		A_subtract = Subtract()([advantage, A])
+		Q_value = Add()([value, A_subtract])
+
+		model = Model(inputs=[input_1, input_2], outputs=[Q_value])
+		model.compile(optimizer= Adam(lr=self.learning_rate), loss='mse')
+		return model
+
+	def save(self, name):
+		self.model.save_weights(name)
+    
+	def load(self, name):
+		self.model.load_weights(name)
+
+
+	@property
+	def num_actions(self):
+		return self._num_actions
+
+	@property
+	def batch_size(self):
+		return self._batch_size
+
+# HANDLE THE SIMULATION OF THE AGENT
+class SumoSimulation:
+    def __init__(self, agent, target_agent, memory, gamma, max_steps, sumoCmd, green_duration, yellow_duration):
+        
+        self.I = np.full((agent.num_actions, agent.num_actions), 0.5).reshape(1, agent.num_actions, agent.num_actions)
+        self._green_duration = green_duration					# hard code.
+        self._yellow_duration = yellow_duration
+        self._alpha_update_target = 0.0001
+
+        # ---------------------------------------------------------------------------------------
+        self._agent = agent
+        self._target_agent = target_agent
+        self._memory = memory
+        self._epsilon = 0 							            # controls the explorative/exploitative payoff
+        self._gamma = gamma
+        self._max_steps = max_steps
+        self._sumoCmd = sumoCmd
+
+        self._reward_store_LOW = []
+        self._cumulative_wait_store_LOW = []
+        self._avg_intersection_queue_store_LOW = []                            # mỗi giây có bao nhiêu thằng đợi?
+        self._avg_waiting_time_per_veh_LOW = []                                # mỗi veh đợi trung bình bao nhiêu giây?
+        self._avg_waiting_time_per_veh_LOW_fixed_route = []                     # mỗi veh đợi trung bình bao nhiêu giây?
+
+        self._reward_store_HIGH = []
+        self._cumulative_wait_store_HIGH = []
+        self._avg_intersection_queue_store_HIGH = []
+        self._avg_waiting_time_per_veh_HIGH = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+        self._avg_waiting_time_per_veh_HIGH_fixed_route = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+
+
+        self._reward_store_NS = []
+        self._cumulative_wait_store_NS = []
+        self._avg_intersection_queue_store_NS = []
+        self._avg_waiting_time_per_veh_NS = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+        self._avg_waiting_time_per_veh_NS_fixed_route = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+
+
+        self._reward_store_EW = []
+        self._cumulative_wait_store_EW = []
+        self._avg_intersection_queue_store_EW = []
+        self._avg_waiting_time_per_veh_EW = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+        self._avg_waiting_time_per_veh_EW_fixed_route = []                 # mỗi veh đợi trung bình bao nhiêu giây?
+
+    def get_simu_type_str(self,simu_type):
+        if simu_type == 0:
+            return 'LOW'
+        elif simu_type == 1:
+            return 'HIGH' 
+        elif simu_type == 2:
+            return 'NS' 
+        elif simu_type == 3:
+            return 'EW' 
+
+    def cal_yellow_duration(self, old_action):
+        v_on_road = []
+        lane_ids = ['gneE21','gneE89'] if (old_action == 0) else ['gneE85','gneE86']
+        for id in lane_ids:
+            vehicles_road = traci.edge.getLastStepVehicleIDs(id)
+            for vehicle in vehicles_road:
+                v_on_road.append(traci.vehicle.getSpeed(vehicle))
+        if not v_on_road:
+            v_on_road.append(0)
+        return int(np.amax(v_on_road)/constants.a_dec)
+
+    # Run 1 simulation:
+    def run_one_episode_training(self, episode, total_episodes):
+
+        # gen random route.
+        simu_type = genorator.gen_route(episode, is_random = True)
+        
+        print('Training on random route with type: ', self.get_simu_type_str(simu_type))
+        self._epsilon = 1.0 - (episode / constants.total_ep_for_epislon)								# setup epsilon
+        traci.start(self._sumoCmd)														                # then, start sumo
+        
+        # INIT some vars:
+        self._steps = 0			
+        self._sum_intersection_queue = 0		# increases every step/seconds
+        tot_neg_reward = 0						# total negative reward
+        pre_wait_time = 0						# 
+
+        # INIT my vars:
+        action = 0						        # initial action
+        old_action = 0
+        state = self._get_state(self.I)
+        action_count = [0,0]                    # cal percent of actions
+        good_bad_count = [0,0]                  #   count good bad actions
+
+        # run 1 simulation (maxsteps)
+        while self._steps < self._max_steps:
+            # reset current_wait_time:
+            current_wait_time = 0
+
+            # select action (select index of action, then edit action_time)
+            action = self._choose_action(state)
+            # just count numb of taken actions.
+            action_count[action] += 1
+
+            #  ================================ Take action ====================================================================
+            if self._steps != 0 and old_action != action:
+                # just set traffic_light in sumo
+                self._set_yellow_phase(old_action)
+                
+                # ver 1: fixed yellow.
+                # current_wait_time = self._simulate(self._yellow_duration)
+
+                # ver 2: dynamic yellow.
+                yellow_duration_new = self.cal_yellow_duration(old_action)
+                current_wait_time = self._simulate(yellow_duration_new)     
+
+            self._set_green_phase(action)
+            current_wait_time = self._simulate(self._green_duration)
+            #  =================================================================================================================
+
+            # get next_state and reward
+            next_state = self._get_state(self.I)
+
+            reward = pre_wait_time - current_wait_time
+            if reward < 0:
+                tot_neg_reward += reward
+                good_bad_count[1] += 1
+            else:
+                good_bad_count[0] += 1
+            
+            # save tuple:			
+            self._memory.add_sample((state, action, reward, next_state))
+            
+            # training:
+            self._replay()
+
+            # reassign:
+            pre_wait_time = current_wait_time
+            state = next_state
+            old_action = action
+
+            # print
+            eval_this_action = 'Good action' if (reward>=0) else 'Bad Action'
+            print('step: ', self._steps, '|',self._max_steps,' || action: ', self.get_action_name(action), ': ',eval_this_action,' || negative reward: ', tot_neg_reward)
+
+
+        print('percent of actions: ', np.array(action_count)/sum(action_count))
+        print("Total negative reward: {}, Eps: {}".format(tot_neg_reward, self._epsilon))
+        
+        # append data
+        self._save_stats(simu_type,tot_neg_reward)		
+        
+        # save array to disk:
+        self.save_all_arrays()
+
+        # close gui.
+        traci.close(wait = False)
+
+    def run_one_episode_on_STL(self, episode, total_episodes):
+        # load fixed route:
+        simu_type = genorator.gen_route(episode, is_random = False)                                     # load fixed_route.
+        print('Run fixed_route on mode: ', self.get_simu_type_str(simu_type))
+        self._epsilon = 0.0                                                                             # all actions by model.
+        traci.start(self._sumoCmd)														                # then, start sumo
+        
+        # INIT some vars:
+        self._steps = 0
+        self._sum_intersection_queue = 0		# increases every step/seconds
+        tot_neg_reward = 0						# total negative reward
+        pre_wait_time = 0						# 
+
+        # INIT my vars:
+        action = 0						        # initial action
+        old_action = 0
+        state = self._get_state(self.I)
+
+        # run 1 simulation (maxsteps)
+        while self._steps < self._max_steps:
+            # reset current_wait_time:
+            current_wait_time = 0
+
+            # select action (select index of action, then edit action_time)
+            action = self._choose_action(state)
+
+            #  ================================ Take action ====================================================================
+            if self._steps != 0 and old_action != action:
+                # just set traffic_light in sumo
+                self._set_yellow_phase(old_action)
+
+                # ver 2: dynamic yellow.
+                yellow_duration_new = self.cal_yellow_duration(old_action)
+                current_wait_time = self._simulate(yellow_duration_new)     
+
+            self._set_green_phase(action)
+            current_wait_time = self._simulate(self._green_duration)
+            #  =================================================================================================================
+
+            # get next_state and reward
+            next_state = self._get_state(self.I)
+
+            reward = pre_wait_time - current_wait_time
+            if reward < 0:
+                tot_neg_reward += reward
+
+            # reassign:
+            pre_wait_time = current_wait_time
+
+            state = next_state
+            old_action = action
+
+            # print
+            print('step: ', self._steps, '|',self._max_steps,' || action: ', self.get_action_name(action), ':  || negative reward: ', tot_neg_reward)
+
+        # append data
+        self._save_fixed_status(simu_type)
+        
+        # close gui.
+        traci.close(wait = False)
+
+    def save_all_arrays(self):
+        np.save(constants.path + '_avg_waiting_time_per_veh_LOW.npy', self._avg_waiting_time_per_veh_LOW)
+        np.save(constants.path + '_avg_waiting_time_per_veh_HIGH.npy', self._avg_waiting_time_per_veh_HIGH)
+        np.save(constants.path + '_avg_waiting_time_per_veh_NS.npy', self._avg_waiting_time_per_veh_NS)
+        np.save(constants.path + '_avg_waiting_time_per_veh_EW.npy', self._avg_waiting_time_per_veh_EW)
+
+    #  FOR TEST
+    def get_action_name(self,action):
+        if action == 0:
+            return 'EW     '
+        elif action == 1:
+            return 'NS     '
+
+    # HANDLE THE CORRECT NUMBER OF STEPS TO SIMULATE
+    def _simulate(self, steps_todo):
+        intersection_queue, summed_wait = self._get_stats() # init the summed_wait, in order to avoid a null return
+        if (self._steps + steps_todo) >= self._max_steps: # do not do more steps than the maximum number of steps
+            steps_todo = self._max_steps - self._steps
+        while steps_todo > 0:
+            # test:
+            self._get_state(self.I)
+            traci.simulationStep() # simulate 1 step in sumo
+            self._steps = self._steps + 1
+            steps_todo -= 1
+            intersection_queue, summed_wait = self._get_stats()     # why just get final step instead get every step.
+            # intersection_queue: queue of this step
+            self._sum_intersection_queue += intersection_queue      # sum_queue is increased every step.
+
+            # test:
+            # list_veh = traci.vehicle.getIDList()
+            # print(len(list_veh))
+
+        return summed_wait
+
+    # RETRIEVE THE STATS OF THE SIMULATION FOR ONE SINGLE STEP
+    def _get_stats(self):
+        halt_N = traci.edge.getLastStepHaltingNumber("gneE21") # number of cars in halt in a road
+        halt_S = traci.edge.getLastStepHaltingNumber("gneE86")
+        halt_E = traci.edge.getLastStepHaltingNumber("gneE89")
+        halt_W = traci.edge.getLastStepHaltingNumber("gneE85")
+        intersection_queue = halt_N + halt_S + halt_E + halt_W          # total stopping vehicles (at time step t)
+        
+        wait_N = traci.edge.getWaitingTime("gneE21") # total waiting times of cars in a road
+        wait_S = traci.edge.getWaitingTime("gneE86")
+        wait_W = traci.edge.getWaitingTime("gneE89")
+        wait_E = traci.edge.getWaitingTime("gneE85")
+        summed_wait = wait_N + wait_S + wait_W + wait_E                # total waiting time of all vehicles (at time step t)
+
+        return intersection_queue, summed_wait
+
+    # SET IN SUMO A YELLOW PHASE
+    def _set_yellow_phase(self, old_action):
+        yellow_phase = old_action * 2 + 1 # obtain the correct yellow_phase_number based on the old action
+        traci.trafficlight.setPhase(constants.light_id, yellow_phase)
+
+    # SET IN SUMO A GREEN PHASE
+    def _set_green_phase(self, phase_number):
+        if phase_number == 0:
+            traci.trafficlight.setPhase(constants.light_id, 0)
+        elif phase_number == 1:
+            traci.trafficlight.setPhase(constants.light_id, 2)
+
+    # SAVE THE STATS OF THE EPISODE TO PLOT THE GRAPHS AT THE END OF THE SESSION
+    def _save_stats(self, traffic_code, tot_neg_reward): # save the stats for this episode
+        numb_generated_veh = count_veh.cal_numb_generated_veh(self.get_simu_type_str(traffic_code), is_random = True)
+      
+        if traffic_code == 0: # data low
+            self._reward_store_LOW.append(tot_neg_reward) # how much negative reward in this episode
+            # array của [queue_length, ....]
+            self._cumulative_wait_store_LOW.append(self._sum_intersection_queue) # total number of seconds waited by cars (1 step = 1 second -> 1 car in queue/step = 1 second in queue/step=
+            # mỗi giây, có bao nhiêu xe đợi?
+            self._avg_intersection_queue_store_LOW.append(self._sum_intersection_queue / self._max_steps) # average number of queued cars per step, in this episode
+
+            self._avg_waiting_time_per_veh_LOW.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 1: # data high
+            self._reward_store_HIGH.append(tot_neg_reward)
+            self._cumulative_wait_store_HIGH.append(self._sum_intersection_queue)
+            self._avg_intersection_queue_store_HIGH.append(self._sum_intersection_queue / self._max_steps)
+            self._avg_waiting_time_per_veh_HIGH.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 2: # data ns
+            self._reward_store_NS.append(tot_neg_reward)
+            self._cumulative_wait_store_NS.append(self._sum_intersection_queue)
+            self._avg_intersection_queue_store_NS.append(self._sum_intersection_queue / self._max_steps)
+            self._avg_waiting_time_per_veh_NS.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 3: # data ew
+            self._reward_store_EW.append(tot_neg_reward)
+            self._cumulative_wait_store_EW.append(self._sum_intersection_queue)
+            self._avg_intersection_queue_store_EW.append(self._sum_intersection_queue / self._max_steps)
+            self._avg_waiting_time_per_veh_EW.append(self._sum_intersection_queue / numb_generated_veh)
+    
+    def _save_fixed_status(self, traffic_code): # save the stats for this episode
+        numb_generated_veh = count_veh.cal_numb_generated_veh(self.get_simu_type_str(traffic_code), is_random = False)
+
+        if traffic_code == 0: # data low
+            self._avg_waiting_time_per_veh_LOW_fixed_route.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 1: # data high
+            self._avg_waiting_time_per_veh_HIGH_fixed_route.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 2: # data ns
+            self._avg_waiting_time_per_veh_NS_fixed_route.append(self._sum_intersection_queue / numb_generated_veh)
+        elif traffic_code == 3: # data ew
+            self._avg_waiting_time_per_veh_EW_fixed_route.append(self._sum_intersection_queue / numb_generated_veh)
+
+        np.save(constants.path + '_avg_waiting_time_per_veh_LOW_fixed_route.npy', self._avg_waiting_time_per_veh_LOW_fixed_route)
+        np.save(constants.path + '_avg_waiting_time_per_veh_HIGH_fixed_route.npy', self._avg_waiting_time_per_veh_HIGH_fixed_route)
+        np.save(constants.path + '_avg_waiting_time_per_veh_NS_fixed_route.npy', self._avg_waiting_time_per_veh_NS_fixed_route)
+        np.save(constants.path + '_avg_waiting_time_per_veh_EW_fixed_route.npy', self._avg_waiting_time_per_veh_EW_fixed_route)
+
+    def showMatrix(self, matrix):
+        for i in range(60):
+            for j in range(60):
+                print (int(matrix[i][j]), end = "")
+            print('')
+        print('')
+
+    # select action:
+    def _choose_action(self, state):
+        if random.random() <= self._epsilon:
+            return random.randint(0, self._agent.num_actions - 1) # random action
+        else:
+            return np.argmax(self._agent.model.predict(state))
+
+    # get minibatch and train
+    def _replay(self):
+        minibatch = self._memory.get_samples(self._agent.batch_size) # retrieve a group of samples
+        if len(minibatch) > 0: # if there is at least 1 sample in the memory
+            for state, action, reward, next_state in minibatch:
+                q_values_s = self._agent.model.predict(state)				# q_values of s
+
+                # using target network:
+                q_values_next_s = self._target_agent.model.predict(next_state)
+
+                # ver 1: non double
+                # q_target = reward + self._gamma * np.amax(q_values_next_s)		# q_target (number)
+                
+                # ver 2: double
+                index_action = np.argmax(q_values_s) 								# index of action causing max of q_values_s
+                q_target = reward + self._gamma * q_values_next_s[0][index_action]		# q_target (number)
+
+                q_values_s[0][action] = q_target									# q_target (array of q_values)
+
+                self._agent.model.fit(state, q_values_s, epochs=1, verbose=0)
+        
+            # update target network:
+            self.update_target_weights(self._agent.model.get_weights())
+
+    def replay_priority(self):
+        priority = []
+
+        for i in range(len(self._memory)):
+            s, a, r, next_s = self._memory[i]
+            target_f = self._agent.model.predict(s)
+            # print target_f
+            Q_value = target_f[0][a]
+            Q_value_comma = self.self._agent.model.predict(next_s)[0]
+            a_comma = np.argmax(Q_value_comma)
+            Q_target = r + self.gamma * self._target_agent.model.predict(next_s)[0][a_comma]
+            target_f[0][a] = Q_target
+            delta = abs(Q_value - Q_target)
+            # print Q_value,Q_target, delta
+            priority.append([pow(delta, self.alpha_per), delta, s, target_f])
+
+        sum_priority = sum(row[0] for row in priority)
+        priority = [[row[0] / sum_priority, row[1], row[2], row[3]] for row in priority]
+        target_f_minibatch = []
+        # print priority
+        for i in range(len(priority)):
+            if (i < self.batch_size):
+                max_index = np.argmax([row[0] for row in priority])
+                # minibatch.append(self._memory[max_index])
+                target_f_minibatch.append([priority[max_index][1], priority[max_index][2], priority[max_index][3]])
+                priority[max_index][0] = -float("inf")
+
+        # print priority
+        J = 0
+        # start replay with minibatch priority
+        # print ("minibatch size : " + str(len(target_f_minibatch)))
+        for delta, s, target_f in target_f_minibatch:
+            J += delta * delta
+            self.model.fit(s, target_f, epochs=1, verbose=0, batch_size=1)
+
+        J = J / self.batch_size
+        # print J
+        # self.loss_plot.append(J)
+        # self.step_plot.append(self._steps)
+        # np.save('array_plot/array_loss.npy', self.loss_plot)
+        # np.save('array_plot/array_step.npy', self.step_plot)
+
+    def update_target_weights(self, primary_network_weights):
+        # v1: update through tau/_alpha_update_target:
+        target_network_weights = self._target_agent.model.get_weights()
+        for i in range(len(target_network_weights)):
+            target_network_weights[i] = self._alpha_update_target*target_network_weights[i] + (1-self._alpha_update_target)*primary_network_weights[i]
+            # update target weights
+        self._target_agent.model.set_weights(target_network_weights)
+
+        # v2: update directly:
+        # self._target_agent.model.set_weights(primary_network_weights)
+
+    def get_lane_cell_motobike(self, lane_len, position, avg_cell):
+        position = lane_len - position          # position with the end_of_lane (the traffic light)
+
+        if position < avg_cell:
+            return 0
+        elif position < avg_cell*2:
+            return 1
+        elif position < avg_cell*3:
+            return 2
+        elif position < avg_cell*4:
+            return 3
+        elif position < avg_cell*5:
+            return 4
+        elif position < avg_cell*6:
+            return 5
+        elif position < avg_cell*7:
+            return 6
+        elif position < avg_cell*8:
+            return 7
+        elif position < avg_cell*9:
+            return 8
+        elif position < avg_cell*10:
+            return 9
+        elif position < avg_cell*11:
+            return 10
+        elif position < avg_cell*12:
+            return 11
+        elif position < avg_cell*13:
+            return 12
+        elif position < avg_cell*14:
+            return 13
+        elif position < avg_cell*15:
+            return 14
+        elif position < avg_cell*16:
+            return 15
+        elif position < avg_cell*17:
+            return 16
+        elif position < avg_cell*18:
+            return 17   
+        elif position < avg_cell*19:
+            return 18
+        elif position < avg_cell*20:
+            return 19
+    
+    def get_lane_cell_mid_lane(self, lane_len, position, avg_cell):
+        position = lane_len - position          # position with the end_of_lane (the traffic light)
+
+        if position < avg_cell:
+            return 0
+        elif position < avg_cell*2:
+            return 1
+        elif position < avg_cell*3:
+            return 2
+        elif position < avg_cell*4:
+            return 3
+        elif position < avg_cell*5:
+            return 4
+        elif position < avg_cell*6:
+            return 5
+        elif position < avg_cell*7:
+            return 6
+        elif position < avg_cell*8:
+            return 7
+
+    def get_child_index(self, vehicle_id):
+        position = traci.vehicle.getLateralLanePosition(vehicle_id)
+        if position > 0.875:
+            return 0
+        elif position > 0:
+            return 1
+        elif position > -0.875:
+            return 2
+        else:
+            return 3
+    
+    def _get_state(self, I):
+            position_matrix = np.zeros([60,60])
+            speed_matrix = np.zeros([60,60])ehicleehicle
+
+            # for every vehicle in current-time-step:
+            for vehicle_id in traci.vehicle.getIDList():
+
+                lane_position = traci.vehicle.getLanePosition(vehicle_id)       # position with the beginning_of_lane
+                lane_id = traci.vehicle.getLaneID(vehicle_id)
+                speed = traci.vehicle.getSpeed(vehicle_id)
+                
+                # index of motobike in sub_lane:
+                sub_lane_index = 0
+
+                if (lane_id == 'gneE86_1') or (lane_id == 'gneE85_1') or (lane_id == 'gneE21_1') or (lane_id == 'gneE89_1'):
+                    lane_cell = self.get_lane_cell_motobike(50,lane_position, 2.5)
+                    sub_lane_index = self.get_child_index(vehicle_id)
+                elif (lane_id == 'gneE86_2') or (lane_id == 'gneE85_2') or (lane_id == 'gneE21_2') or (lane_id == 'gneE89_2'):
+                    lane_cell = self.get_lane_cell_mid_lane(50,lane_position, 6.5)
+                else:
+                    lane_cell = self.get_lane_cell_mid_lane(50,lane_position,7)
+                    
+                if lane_id == 'gneE86_1':                                       # bot top
+                    position_matrix[36+lane_cell][32+sub_lane_index] = 1
+                    speed_matrix[36+lane_cell][32+sub_lane_index] = speed
+                elif lane_id == 'gneE86_2':
+                    position_matrix[36+lane_cell][31] = 1
+                    speed_matrix[36+lane_cell][31] = speed
+                elif lane_id == 'gneE86_3':
+                    position_matrix[36+lane_cell][30] = 1
+                    speed_matrix[36+lane_cell][30] = speed
+
+                elif lane_id == 'gneE85_1':                                             # top bot
+                        position_matrix[23-lane_cell][27-sub_lane_index] = 1            
+                        speed_matrix[23-lane_cell][27-sub_lane_index] = speed
+                elif lane_id == 'gneE85_2':
+                    position_matrix[23-lane_cell][28] = 1
+                    speed_matrix[23-lane_cell][28] = speed
+                elif lane_id == 'gneE85_3':
+                    position_matrix[23-lane_cell][29] = 1
+                    speed_matrix[23-lane_cell][29] = speed
+
+                elif lane_id == 'gneE21_1':                             # left right
+                    position_matrix[32+sub_lane_index][23-lane_cell] = 1
+                    speed_matrix[32+sub_lane_index][23-lane_cell] = speed
+                elif lane_id == 'gneE21_2':
+                    position_matrix[31][23-lane_cell] = 1
+                    speed_matrix[31][23-lane_cell] = speed
+                elif lane_id == 'gneE21_3':
+                    position_matrix[30][23-lane_cell] = 1
+                    speed_matrix[30][23-lane_cell] = speed
+
+                elif lane_id == 'gneE89_1':                             # right left
+                    position_matrix[27-sub_lane_index][36+lane_cell] = 1
+                    speed_matrix[27-sub_lane_index][36+lane_cell] = speed
+                elif lane_id == 'gneE89_2':
+                    position_matrix[28][36+lane_cell] = 1
+                    speed_matrix[28][36+lane_cell] = speed
+                elif lane_id == 'gneE89_3':
+                    position_matrix[29][36+lane_cell] = 1
+                    speed_matrix[29][36+lane_cell] = speed
+            
+            # position and speed:
+            outputMatrix = [position_matrix, speed_matrix]
+            output = np.transpose(outputMatrix) # np.array(outputMatrix)
+            output = output.reshape(1,60,60,2)
+
+            # self.showMatrix(speed_matrix)
+
+            # # just position:
+            # outputMatrix = [position_matrix]
+            # output = np.transpose(outputMatrix) # np.array(outputMatrix)
+            # output = output.reshape(1,60,60,1)
+
+            return [output, I]
+
+    @property
+    def reward_store_LOW(self):
+        return self._reward_store_LOW
+
+    @property
+    def cumulative_wait_store_LOW(self):
+        return self._cumulative_wait_store_LOW
+
+    @property
+    def avg_intersection_queue_store_LOW(self):
+        return self._avg_intersection_queue_store_LOW
+
+    @property
+    def reward_store_HIGH(self):
+        return self._reward_store_HIGH
+
+    @property
+    def cumulative_wait_store_HIGH(self):
+        return self._cumulative_wait_store_HIGH
+
+    @property
+    def avg_intersection_queue_store_HIGH(self):
+        return self._avg_intersection_queue_store_HIGH
+
+    @property
+    def reward_store_NS(self):
+        return self._reward_store_NS
+
+    @property
+    def cumulative_wait_store_NS(self):
+        return self._cumulative_wait_store_NS
+
+    @property
+    def avg_intersection_queue_store_NS(self):
+        return self._avg_intersection_queue_store_NS
+
+    @property
+    def reward_store_EW(self):
+        return self._reward_store_EW
+
+    @property
+    def cumulative_wait_store_EW(self):
+        return self._cumulative_wait_store_EW
+
+    @property
+    def avg_intersection_queue_store_EW(self):
+        return self._avg_intersection_queue_store_EW
+
+# HANDLE THE MEMORY
+class Memory:
+    def __init__(self, max_memory):
+        self._max_memory = max_memory # size of memory
+        self._samples = []
+
+    # ADD A SAMPLE INTO THE MEMORY
+    def add_sample(self, sample):
+        self._samples.append(sample)
+        if len(self._samples) > self._max_memory:
+            self._samples.pop(0) # if the length is greater than the size of memory, remove the oldest element
+
+    # GET n_samples SAMPLES RANDOMLY FROM THE MEMORY
+    def get_samples(self, n_samples):
+        if n_samples > len(self._samples):
+            return random.sample(self._samples, len(self._samples)) # get all the samples
+        else:
+            return random.sample(self._samples, n_samples) # get "batch size" number of samples
+
+# PLOT AND SAVE THE STATS ABOUT THE SESSION
+def save_graphs(sumo_simulation, total_episodes, mode, plot_path):
+    plt.rcParams.update({'font.size': 18})
+    # x = np.linspace(0, total_episodes, math.ceil(total_episodes/4))
+    # reward
+    data = sumo_simulation._reward_store             # neg-reward
+    plt.plot(data)
+    plt.ylabel("Cumulative negative reward = Total negative reward")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    min_val = min(data)
+    max_val = max(data)
+    plt.ylim(min_val + 0.05 * min_val, max_val - 0.05 * max_val)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'reward_' + mode + '.png', dpi=96)
+    plt.close("all")
+
+    # cumulative wait
+    data = sumo_simulation._cumulative_wait_store            # total length queue ~ _sum_intersection_queue
+    plt.plot(data)
+    plt.ylabel("Cumulative delay (s) = Total queue length")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    min_val = min(data)
+    max_val = max(data)
+    plt.ylim(min_val - 0.05 * min_val, max_val + 0.05 * max_val)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'delay_' + mode + '.png', dpi=96)
+    plt.close("all")
+
+    # average number of cars in queue
+    data = sumo_simulation._avg_intersection_queue_store
+    plt.plot(data)
+    plt.ylabel("Average queue length (vehicles) = Total queue lenght / maxs teps")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    min_val = min(data)
+    max_val = max(data)
+    plt.ylim(min_val - 0.05 * min_val, max_val + 0.05 * max_val)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'queue_' + mode + '.png', dpi=96)
+    plt.close("all")
+def save_graphs_for_one_mode(sumo_simulation, total_episodes, mode, plot_path):
+    plt.rcParams.update({'font.size': 18})
+    # reward
+    if mode == "L":
+        data = sumo_simulation.reward_store_LOW             # neg-reward
+    if mode == "H":
+        data = sumo_simulation.reward_store_HIGH
+    if mode == "NS":
+        data = sumo_simulation.reward_store_NS
+    if mode == "EW":
+        data = sumo_simulation.reward_store_EW
+    
+    plt.plot(data)
+    plt.ylabel("Cumulative negative reward = Total negative reward")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'reward_' + mode + '.png', dpi=96)
+    plt.close("all")
+
+    # cumulative wait
+    if mode == "L":
+        data = sumo_simulation.cumulative_wait_store_LOW            # total length queue ~ _sum_intersection_queue
+    if mode == "H":
+        data = sumo_simulation.cumulative_wait_store_HIGH
+    if mode == "NS":
+        data = sumo_simulation.cumulative_wait_store_NS
+    if mode == "EW":
+        data = sumo_simulation.cumulative_wait_store_EW
+    plt.plot(data)
+    plt.ylabel("Cumulative delay (s) = Total queue length")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'delay_' + mode + '.png', dpi=96)
+    plt.close("all")
+
+    # average number of cars in queue
+    if mode == "L":
+        data = sumo_simulation.avg_intersection_queue_store_LOW
+    if mode == "H":
+        data = sumo_simulation.avg_intersection_queue_store_HIGH
+    if mode == "NS":
+        data = sumo_simulation.avg_intersection_queue_store_NS
+    if mode == "EW":
+        data = sumo_simulation.avg_intersection_queue_store_EW
+    plt.plot(data)
+    plt.ylabel("Average queue length (vehicles) = Total queue lenght / maxs teps")
+    plt.xlabel("Epoch")
+    plt.margins(0)
+    # min_val = min(data)
+    # max_val = max(data)
+    # plt.ylim(min_val - 0.05 * min_val, max_val + 0.05 * max_val)
+    fig = plt.gcf()
+    fig.set_size_inches(20, 11.25)
+    fig.savefig(plot_path + 'queue_' + mode + '.png', dpi=96)
+    plt.close("all")
+
+def main():
+    # ---------------------------- CONFIGURATION for TRAINING in constants.py -----------------------------------
+    total_episodes = constants.total_episodes
+    batch_size = constants.batch_size
+    gamma = constants.gamma
+    path = constants.path
+    memory_size = constants.memory_size
+    num_actions = constants.num_actions
+    max_steps = constants.max_steps
+    sumoCmd = constants.sumoCmd
+    green_duration = constants.green_duration
+    yellow_duration = constants.yellow_duration
+    if not os.path.exists(path):
+        os.makedirs(path)
+    # ------------------------------------------------------------------------------------------------------------
+
+    # Primary objects:
+    agent = DQNAgent(num_actions, batch_size)               # primary agent
+    target_agent = DQNAgent(num_actions, batch_size)        # target agent
+    memory = Memory(memory_size)                            # memory
+    sumo_simulation = SumoSimulation(agent, target_agent, memory, gamma, max_steps, sumoCmd, green_duration, yellow_duration) # sumo
+
+    # Run every simulation:
+    current_episode = 0
+    while current_episode < total_episodes:
+        print('----- Simulation {} of {}'.format(current_episode+1, total_episodes))
+        sumo_simulation.run_one_episode_training(current_episode, total_episodes) 
+        current_episode += 1
+        
+    agent.save(path+'last_model.h5')
+
+if __name__ == "__main__":
+	main()
+

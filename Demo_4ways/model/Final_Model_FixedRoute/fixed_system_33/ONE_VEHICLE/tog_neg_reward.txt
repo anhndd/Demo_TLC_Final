@@ -1,0 +1,3 @@
+ONE_VEHICLE reward: -63.0 _sum_intersection_queue: 63 || AWT: [21.0]
+ONE_VEHICLE reward: -33.0 _sum_intersection_queue: 33 || AWT: [33.0]
+ONE_VEHICLE reward: -33.0 _sum_intersection_queue: 33 || AWT: [33.0]

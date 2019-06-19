@@ -1,0 +1,2 @@
+RANDOM_1 reward: -5130.0 _sum_intersection_queue: 16183RANDOM_1 reward: -5130.0 _sum_intersection_queue: 16183
+RANDOM_1 reward: -5130.0 _sum_intersection_queue: 16183RANDOM_1 reward: -5130.0 _sum_intersection_queue: 16183RANDOM_1 reward: -5130.0 _sum_intersection_queue: 16183
