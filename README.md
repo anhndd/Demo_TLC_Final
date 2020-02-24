@@ -14,6 +14,6 @@ This Research project is about using Deep Reinforcement Learning to control traf
 
   • Build simulation using SUMO tool.
   
-  • Apply Keras library to implement Deep neuron network.
+  • Apply Keras library to implement Deep Neural Network (include CNN, Double Deep Q-Learning).
   
   • Contain solution optimize model train in fork & crossroads, presentation, thesis report.
