@@ -2,7 +2,7 @@
 
 This Research project is about using Deep Reinforcement Learning to control traffic light. 
 
-<h2>Goal:</h2> 
+<h2>Goal</h2> 
 
   • Be able to make decisions that help navigate vehicles effectively, reduce waiting times and traffic congestion.
   
@@ -10,7 +10,7 @@ This Research project is about using Deep Reinforcement Learning to control traf
   
   • The evaluation and verification must yield the best results when compared to the common traffic light system, with other models.
 
-<h2>Content:</h2>
+<h2>Content</h2>
 
   • Build simulation using SUMO tool.
   
