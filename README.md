@@ -16,4 +16,4 @@ This Research project is about using Deep Reinforcement Learning to control traf
   
   • Apply Keras library to implement Deep Neural Network (include CNN, Double Deep Q-Learning).
   
-  • Contain solution optimize model train in fork & crossroads, presentation, thesis report.
+  • Contain solution optimiz model train in fork & crossroads, presentation, thesis report.
